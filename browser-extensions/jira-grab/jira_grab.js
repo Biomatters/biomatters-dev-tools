@@ -40,12 +40,13 @@ function parseIssue(issuePage) {
     if(issuePage) {
         key = document.getElementById("key-val").textContent.trim();
         summary = document.getElementById("summary-val").textContent.trim();
-        return [key, summary].join(" ");
     } else {
         var selection = document.getElementsByClassName("ghx-selected");
-        return selection[0].getAttribute("aria-label");     // hopefully this doesn't change
+        var issueFields = selection[0].getElementsByClassName("ghx-issue-fields")[0];
+        key = issueFields.getElementsByClassName("ghx-key")[0].innerText;
+        summary = issueFields.getElementsByClassName("ghx-summary")[0].innerText;
     }
-
+    return [key, summary].join(" ");
 }
 
 function displayNotification(msg) {
