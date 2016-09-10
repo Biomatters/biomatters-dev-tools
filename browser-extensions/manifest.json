@@ -15,7 +15,7 @@
   },
 
   "content_scripts": [{
-    "matches": ["https://biomatters.atlassian.net/secure/RapidBoard.jspa*", "https://biomatters.atlassian.net/browse/*"],
+    "matches": ["*://*.atlassian.net/secure/RapidBoard.jspa*", "*://*.atlassian.net/browse/*"],
     "js": ["jira-grab/jira_grab.js"]
   }],
 
