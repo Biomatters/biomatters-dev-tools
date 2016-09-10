@@ -19,12 +19,11 @@
     "js": ["jira-grab/jira_grab.js"]
   }],
 
-  "browser_action": {
-    "default_icon": "icons/icon16.png",
-    "default_title": "Grab JIRA number and summary for use in commit message"
-  },
-
   "permissions": [
     "activeTab"
+  ],
+
+  "web_accessible_resources": [
+    "jira-grab/icons/link.png"
   ]
 }

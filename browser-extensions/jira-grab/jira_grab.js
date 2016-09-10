@@ -1,50 +1,61 @@
-// receives message from the browser action
-chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
-    switch(msg.type) {
-        case "inject":
-            try {
-                var copySupported = document.queryCommandSupported("copy");
-                if (copySupported === true) {
-                    var onIssuePage = msg.text.indexOf("/browse/") > 0;
-                    if (!onIssuePage && msg.text.indexOf("selectedIssue=") == -1) {
-                        sendResponse({"type": "error", "text": "Unable to copy to clipboard. Here's the error reported: Can't determine issue when on Kanban board without a selected issue."});
+// Currently this only works on the issue page itself. Will look into allowing on dashboards and/or kanban boards later. Perhaps a setting for it?
+var title = document.getElementById("summary-val");
+var anchor = document.createElement("a");
+anchor.setAttribute("id", "jira-grabber-button");
+anchor.setAttribute("href", "#");
+var img = document.createElement("img");
+img.setAttribute("src", chrome.extension.getURL("jira-grab/icons/link.png"));
+img.setAttribute("alt", "Click to copy issue key and summary");
+img.setAttribute("aria-label", "Copy issue key and summary");
+img.style.marginTop = "4px";
+img.style.marginLeft = "4px";
+img.addEventListener("click", function () {
+    try {
+        var copySupported = document.queryCommandSupported("copy");
+        if (copySupported === true) {
+            var parsedIssue = parseIssue(); // change me when support for pages outside the issue page are done
+            if(parsedIssue !== "") {
+                console.log("Parsed as \"" + parsedIssue + "\", sending to background page for copying");
+                // can't copy in a content script, have to dispatch to the background page to do this
+                chrome.runtime.sendMessage({"action": "copy", "parsedIssue": parsedIssue}, function (response) {
+                    console.log("Response: " + JSON.stringify(response));
+                    if (response.status === "success") {
+                        displayNotification({"type": "notify", "status": "success", "text": parsedIssue});
                     }
-                    var parsedIssue = parseIssue(onIssuePage);
-                    console.log("Parsed as \"" + parsedIssue + "\", sending response");
-                    sendResponse({"type": "copy", "text": parsedIssue});
-
-                } else {
-                    console.error("Copy command not supported.");
-                    sendResponse({"type": "error", "text": "Copy command not supported."});
-                }
-            } catch (err) {
-                console.error("Unable to copy to clipboard. Here's the error reported: " + err);
-                sendResponse({"type": "error", "text": "Unable to copy to clipboard. Here's the error reported: " + err});
+                });
+            } else {
+                console.error("Failed to parse issue because the key or summary fields were not found. " +
+                              "Expected #key-val or #issuekey-val, and #summary-val");
             }
-            break;
-        case "notify":
-            displayNotification(msg);
-            break;
+        } else {
+            console.error("Copy command not supported.");
+        }
+    } catch (err) {
+        console.error("Unable to copy to clipboard. Here's the error reported: " + err);
     }
-    return true;
 });
+
+anchor.appendChild(img);
+title.parentNode.appendChild(anchor);
 
 /**
  * Parse the issue key and summary.
  *
- * @param {boolean} issuePage true if on the issue page, false if on the board and the side panel is open
- * @return string the parsed issue string
+ * @return string the parsed issue string or empty string if one of the fields were not found
  */
-function parseIssue(issuePage) {
+function parseIssue() {
     var key, summary;
-    if(issuePage) {
+    if (document.getElementById("key-val") !== null) {
         key = document.getElementById("key-val").textContent.trim();
+    } else if (document.getElementById("issuekey-val") !== null) {
+        key = document.getElementById("key-val").textContent.trim();
+    } else {
+        return "";
+    }
+    if(document.getElementById("summary-val") !== null) {
         summary = document.getElementById("summary-val").textContent.trim();
     } else {
-        var selection = document.getElementsByClassName("ghx-selected");
-        var issueFields = selection[0].getElementsByClassName("ghx-issue-fields")[0];
-        key = issueFields.getElementsByClassName("ghx-key")[0].innerText;
-        summary = issueFields.getElementsByClassName("ghx-summary")[0].innerText;
+        return "";
     }
     return [key, summary].join(" ");
 }
