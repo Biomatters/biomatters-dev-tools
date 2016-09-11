@@ -9,11 +9,6 @@
     "128": "icons/icon128.png"
   },
 
-  "background": {
-    "persistent": false,
-    "scripts": ["jira-grab/background.js"]
-  },
-
   "content_scripts": [{
     "matches": ["*://*.atlassian.net/secure/RapidBoard.jspa*", "*://*.atlassian.net/browse/*"],
     "js": ["jira-grab/jira_grab.js"]
