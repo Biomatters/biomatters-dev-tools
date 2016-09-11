@@ -15,14 +15,15 @@ img.addEventListener("click", function () {
         if (copySupported === true) {
             var parsedIssue = parseIssue(); // change me when support for pages outside the issue page are done
             if(parsedIssue !== "") {
-                console.log("Parsed as \"" + parsedIssue + "\", sending to background page for copying");
+                console.log("Parsed as \"" + parsedIssue + "\"");
                 // can't copy in a content script, have to dispatch to the background page to do this
-                chrome.runtime.sendMessage({"action": "copy", "parsedIssue": parsedIssue}, function (response) {
-                    console.log("Response: " + JSON.stringify(response));
-                    if (response.status === "success") {
-                        displayNotification({"type": "notify", "status": "success", "text": parsedIssue});
-                    }
-                });
+                var status = execCopy(parsedIssue);
+                console.log(status);
+                if (status === true) {
+                    displayNotification({"type": "notify", "status": "success", "text": parsedIssue});
+                } else {
+                    console.error("Failed to copy");
+                }
             } else {
                 console.error("Failed to parse issue because the key or summary fields were not found. " +
                               "Expected #key-val or #issuekey-val, and #summary-val");
@@ -60,6 +61,22 @@ function parseIssue() {
     return [key, summary].join(" ");
 }
 
+function execCopy(text) {
+    var copySupported = document.queryCommandSupported("copy");
+    if (copySupported === false) {
+        console.error("Copy is not supported");
+    }
+    var textArea = document.createElement("textarea");
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.value = text;
+    textArea.select();
+    var success = document.execCommand("Copy");
+
+    textArea.remove();
+    return success;
+}
+
 function displayNotification(msg) {
     var n;
     if (window.Notification && window.Notification.permission === "granted") {
@@ -83,7 +100,6 @@ function displayNotification(msg) {
 }
 
 window.addEventListener('load', function () {
-    //todo see MDN for Firefox version
     // At first, let's check if we have permission for notification
     // If not, let's ask for it
     if (window.Notification && Notification.permission !== "granted") {
